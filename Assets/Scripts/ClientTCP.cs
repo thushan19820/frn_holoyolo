@@ -1,166 +1,261 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
+using System.IO;
 using System.Text;
 using System.Threading;
 using UnityEngine;
-using System.Text.RegularExpressions;
 
-//extra1
 #if !UNITY_EDITOR
- //using System.IO;
- using Windows.Networking.Sockets;
- //using Windows.Storage.Streams;
- //using Windows.Networking;
- //using Windows.Networking.Connectivity;
-#else
-using System.Net.Sockets;
+using System.Threading.Tasks;
 #endif
 
-//extra 1 ende
-
-
-public class ClientTCP : MonoBehaviour
+public class USTrackingTcpClient : MonoBehaviour
 {
 
-    #region private members 	
-    private TcpClient socketConnection;
-    private Thread clientReceiveThread;
-    public string message_display;
-    public string message_convoyer;
-    public string message_camera;
-    public string message_roboter;
-    #endregion
-    // Use this for initialization 		
-    void Start()
+    public USTrackingManager TrackingManager;
+    public USStatusTextManager StatusTextManager;
+
+#if !UNITY_EDITOR
+    private bool _useUWP = true;
+    private Windows.Networking.Sockets.StreamSocket socket;
+    private Task exchangeTask;
+#endif
+
+#if UNITY_EDITOR
+    private bool _useUWP = false;
+    System.Net.Sockets.TcpClient client;
+    System.Net.Sockets.NetworkStream stream;
+    private Thread exchangeThread;
+#endif
+
+    private Byte[] bytes = new Byte[256];
+    private StreamWriter writer;
+    private StreamReader reader;
+
+    public void Connect(string host, string port)
     {
-        
-        ConnectToTcpServer();
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (_useUWP)
         {
-            SendMessage();
+            ConnectUWP(host, port);
+        }
+        else
+        {
+            ConnectUnity(host, port);
         }
     }
-    /// <summary> 	
-    /// Setup socket connection. 	
-    /// </summary> 	
-    private void ConnectToTcpServer()
+
+
+
+#if UNITY_EDITOR
+    private void ConnectUWP(string host, string port)
+#else
+    private async void ConnectUWP(string host, string port)
+#endif
     {
+#if UNITY_EDITOR
+        errorStatus = "UWP TCP client used in Unity!";
+#else
         try
         {
-            clientReceiveThread = new Thread(new ThreadStart(ListenForData));
-            clientReceiveThread.IsBackground = true;
-            clientReceiveThread.Start();
+            if (exchangeTask != null) StopExchange();
+        
+            socket = new Windows.Networking.Sockets.StreamSocket();
+            Windows.Networking.HostName serverHost = new Windows.Networking.HostName(host);
+            await socket.ConnectAsync(serverHost, port);
+        
+            Stream streamOut = socket.OutputStream.AsStreamForWrite();
+            writer = new StreamWriter(streamOut) { AutoFlush = true };
+        
+            Stream streamIn = socket.InputStream.AsStreamForRead();
+            reader = new StreamReader(streamIn);
+
+            RestartExchange();
+            successStatus = "Connected!";
         }
         catch (Exception e)
         {
-            Debug.Log("On client connect exception " + e);
+            errorStatus = e.ToString();
         }
+#endif
     }
-    /// <summary> 	
-    /// Runs in background clientReceiveThread; Listens for incomming data. 	
-    /// </summary>     
-    private void ListenForData()
+
+    private void ConnectUnity(string host, string port)
     {
+#if !UNITY_EDITOR
+        errorStatus = "Unity TCP client used in UWP!";
+#else
         try
         {
-            socketConnection = new TcpClient("localhost", 87);
-            Byte[] bytes = new Byte[1024];
+            if (exchangeThread != null) StopExchange();
+
+            client = new System.Net.Sockets.TcpClient(host, Int32.Parse(port));
+            stream = client.GetStream();
+            reader = new StreamReader(stream);
+            writer = new StreamWriter(stream) { AutoFlush = true };
+
+            RestartExchange();
+            successStatus = "Connected!";
+        }
+        catch (Exception e)
+        {
+            errorStatus = e.ToString();
+        }
+#endif
+    }
+
+    private bool exchanging = false;
+    private bool exchangeStopRequested = false;
+    private string lastPacket = null;
+
+    private string errorStatus = null;
+    private string warningStatus = null;
+    private string successStatus = null;
+    private string unknownStatus = null;
+
+    public void RestartExchange()
+    {
+#if UNITY_EDITOR
+        if (exchangeThread != null) StopExchange();
+        exchangeStopRequested = false;
+        exchangeThread = new System.Threading.Thread(ExchangePackets);
+        exchangeThread.Start();
+#else
+        if (exchangeTask != null) StopExchange();
+        exchangeStopRequested = false;
+        exchangeTask = Task.Run(() => ExchangePackets());
+#endif
+    }
+
+    public void Update()
+    {
+        if (lastPacket != null)
+        {
+            ReportDataToTrackingManager(lastPacket);
+        }
+
+        if (errorStatus != null)
+        {
+            StatusTextManager.SetError(errorStatus);
+            errorStatus = null;
+        }
+        if (warningStatus != null)
+        {
+            StatusTextManager.SetWarning(warningStatus);
+            warningStatus = null;
+        }
+        if (successStatus != null)
+        {
+            StatusTextManager.SetSuccess(successStatus);
+            successStatus = null;
+        }
+        if (unknownStatus != null)
+        {
+            StatusTextManager.SetUnknown(unknownStatus);
+            unknownStatus = null;
+        }
+    }
+
+    public void ExchangePackets()
+    {
+        while (!exchangeStopRequested)
+        {
+            if (writer == null || reader == null) continue;
+            exchanging = true;
+
+            writer.Write("X\n");
+            Debug.Log("Sent data!");
+            string received = null;
+
+#if UNITY_EDITOR
+            byte[] bytes = new byte[client.SendBufferSize];
+            int recv = 0;
             while (true)
             {
-                // Get a stream object for reading 				
-                using (NetworkStream stream = socketConnection.GetStream())
-                {
-                    int length;
-                    // Read incomming stream into byte arrary. 					
-                    while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
-                    {
-                        var incommingData = new byte[length];
-                        Array.Copy(bytes, 0, incommingData, 0, length);
-                        // Convert byte array to string message. 						
-                        string serverMessage = Encoding.ASCII.GetString(incommingData);
-                        message_display = serverMessage;
-                        Debug.Log("server message received as: " + serverMessage);
-                        
-                        //parsecode
-                        string pattern = @"#message-(.+):(.*)#";
-                        //string input = "senden an client: test:abc#message-display:asdbasdasdasdasdasndasdasd\\nhallo\\nworld#";
-                        MatchCollection matches = Regex.Matches(serverMessage, pattern);
-
-                        foreach (Match match in matches)
-                        {
-                            Debug.Log("ist von:        " + match.Groups[1].Value);
-                            Debug.Log("nachricht:        " + match.Groups[2].Value);
-                            string tempstr = match.Groups[2].Value.Replace("\\n", "\n");
-                            Debug.Log("tempstr:        " + tempstr);
-                            if (match.Groups[1].Value == "display")
-                            {
-                                message_display = tempstr;
-                            }
-                            /*else if(match.Groups[1].Value == "display2")
-                            {
-                                message_display2 = tempstr;
-                            }*/
-                        }
-
-                        //parscode ende
-
-
-                    }
-                }
+                recv = stream.Read(bytes, 0, client.SendBufferSize);
+                received += Encoding.UTF8.GetString(bytes, 0, recv);
+                if (received.EndsWith("\n")) break;
             }
-        }
-        catch (SocketException socketException)
-        {
-            Debug.Log("Socket exception: " + socketException);
+#else
+            received = reader.ReadLine();
+#endif
+
+            lastPacket = received;
+            Debug.Log("Read data: " + received);
+
+            exchanging = false;
         }
     }
-    /// <summary> 	
-    /// Send message to server using socket connection. 	
-    /// </summary> 	
-    private void SendMessage()
+
+    private void ReportDataToTrackingManager(string data)
     {
-        if (socketConnection == null)
+        if (data == null)
         {
+            Debug.Log("Received a frame but data was null");
             return;
         }
-        try
+
+        var parts = data.Split(';');
+        foreach (var part in parts)
         {
-            // Get a stream object for writing. 			
-            NetworkStream stream = socketConnection.GetStream();
-            if (stream.CanWrite)
-            {
-                string clientMessage = "This is a message from one of your clients.";
-                // Convert string message to byte array.                 
-                byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
-                // Write byte array to socketConnection stream.                 
-                stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
-                Debug.Log("Client sent his message - should be received by server");
-            }
-        }
-        catch (SocketException socketException)
-        {
-            Debug.Log("Socket exception: " + socketException);
+            ReportStringToTrackingManager(part);
         }
     }
 
-    public override bool Equals(object obj)
+    private void ReportStringToTrackingManager(string rigidBodyString)
     {
-        var tCP = obj as ClientTCP;
-        return tCP != null &&
-               base.Equals(obj) &&
-               EqualityComparer<TcpClient>.Default.Equals(socketConnection, tCP.socketConnection);
+        var parts = rigidBodyString.Split(':');
+        var positionData = parts[1].Split(',');
+        var rotationData = parts[2].Split(',');
+
+        int id = Int32.Parse(parts[0]);
+        float x = float.Parse(positionData[0]);
+        float y = float.Parse(positionData[1]);
+        float z = float.Parse(positionData[2]);
+        float qx = float.Parse(rotationData[0]);
+        float qy = float.Parse(rotationData[1]);
+        float qz = float.Parse(rotationData[2]);
+        float qw = float.Parse(rotationData[3]);
+
+        Vector3 position = new Vector3(x, y, z);
+        Quaternion rotation = new Quaternion(qx, qy, qz, qw);
+
+        TrackingManager.UpdateRigidBodyData(id, position, rotation);
     }
 
-    public override int GetHashCode()
+    public void StopExchange()
     {
-        var hashCode = 1703058482;
-        hashCode = hashCode * -1521134295 + base.GetHashCode();
-        hashCode = hashCode * -1521134295 + EqualityComparer<TcpClient>.Default.GetHashCode(socketConnection);
-        return hashCode;
+        exchangeStopRequested = true;
+
+#if UNITY_EDITOR
+        if (exchangeThread != null)
+        {
+            exchangeThread.Abort();
+            stream.Close();
+            client.Close();
+            writer.Close();
+            reader.Close();
+
+            stream = null;
+            exchangeThread = null;
+        }
+#else
+        if (exchangeTask != null) {
+            exchangeTask.Wait();
+            socket.Dispose();
+            writer.Dispose();
+            reader.Dispose();
+
+            socket = null;
+            exchangeTask = null;
+        }
+#endif
+        writer = null;
+        reader = null;
     }
+
+    public void OnDestroy()
+    {
+        StopExchange();
+    }
+
 }
