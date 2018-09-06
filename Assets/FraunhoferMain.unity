@@ -184,7 +184,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbe097ade78bb7f4a90c3aaaa9c053ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _input: Waiting
   message_display: 
 --- !u!4 &78491677
 Transform:
@@ -292,7 +291,7 @@ TextMesh:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 142872208}
-  m_Text: Display:...
+  m_Text: 'Display: offline'
   m_OffsetZ: 0
   m_CharacterSize: 0.05
   m_LineSpacing: 1
@@ -389,7 +388,7 @@ TextMesh:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 155617103}
-  m_Text: Band:...
+  m_Text: 'Convoxer: offline'
   m_OffsetZ: 0
   m_CharacterSize: 0.05
   m_LineSpacing: 1
@@ -1099,7 +1098,7 @@ TextMesh:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1534274655}
-  m_Text: jnjdncjdscjbdshsdbvhmsmnmnm
+  m_Text: 'Robot: Offline'
   m_OffsetZ: 0
   m_CharacterSize: 0.05
   m_LineSpacing: 1
@@ -1353,7 +1352,7 @@ TextMesh:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1995474022}
-  m_Text: Kamera:...
+  m_Text: 'Camera: offline'
   m_OffsetZ: 0
   m_CharacterSize: 0.05
   m_LineSpacing: 1
