@@ -18,8 +18,8 @@ private async void Start()
     {
 
         Windows.Networking.Sockets.StreamSocket socket = new Windows.Networking.Sockets.StreamSocket();
-        Windows.Networking.HostName server = new Windows.Networking.HostName("172.18.0.137");
-        string serverPort = "8000";
+        Windows.Networking.HostName server = new Windows.Networking.HostName("192.168.137.1");
+        string serverPort = "3000";
         await socket.ConnectAsync(server, serverPort);
 
         Stream streamOut = socket.OutputStream.AsStreamForWrite();
@@ -28,7 +28,7 @@ private async void Start()
         message_display = message;
         await writer.WriteLineAsync(message);
         await writer.FlushAsync();
-
+    //
 
 
     }
