@@ -13,7 +13,7 @@ public class CamText : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        GetComponent<TextMesh>().text = tcp_handler.message_display;
+        GetComponent<TextMesh>().text = tcp_handler.message_camera;
     }
    
 }

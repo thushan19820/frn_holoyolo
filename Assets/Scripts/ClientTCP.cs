@@ -13,6 +13,9 @@ using System.Threading.Tasks;
 public class ClientTCP : MonoBehaviour
 {
     public String message_display;
+    public String message_roboter;
+    public String message_convoyer;
+    public String message_camera;
 
 #if !UNITY_EDITOR
     private StreamSocket socket;
@@ -22,10 +25,10 @@ public class ClientTCP : MonoBehaviour
     private StreamWriter writer;
     private StreamReader reader;
 
-    public string message_display; // debug output here. using function ShowDebugInGame
-    public string message_convoyer;
-    public string message_camera;
-    public string message_roboter;
+    //public string message_display; // debug output here. using function ShowDebugInGame
+    //public string message_convoyer;
+    //public string message_camera;
+    //public string message_roboter;
     
 private async void ShowDebugInGame(String msg){
     message_display = msg;
@@ -36,7 +39,7 @@ private async void Start()
     }
 
     private void ConnectToTcpServer() {
-        ShowDebugInGame("ConnectToTcpServer")
+        ShowDebugInGame("ConnectToTcpServer");
          try
         {
             socket = new StreamSocket();
@@ -53,22 +56,23 @@ private async void Start()
         catch (Exception e)
         {
             // Debug.Log("On client connect exception " + e);
-            ShowDebugInGame("On client connect exception:" + e)
+            ShowDebugInGame("On client connect exception:" + e);
         }
     }
 
+
     public void ExchangePackets()
     {
-        ShowDebugInGame("ThreadStart::ExchangePackets")
-        while(True){
+        ShowDebugInGame("ThreadStart::ExchangePackets");
+        while(true){
             if (writer == null || reader == null) continue;
-            ShowDebugInGame("write x to network")
+            ShowDebugInGame("write x to network");
             writer.Write("X\n");
-            ShowDebugInGame("write x to network.Done")
+            ShowDebugInGame("write x to network.Done");
             string received = null;
             received = reader.ReadLine();
             // Debug.Log("Read data: " + received);
-            ShowDebugInGame("Read data: " + received)
+            ShowDebugInGame("Read data: " + received);
 
             // TODO: verteilen der msg auf display-boxen
             // Das hier spaeter testen, wenn wir  wissen das der obere code funktioniert.
