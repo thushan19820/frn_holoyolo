@@ -38,7 +38,7 @@ private async void Start()
         ConnectToTcpServer();
     }
 
-    private void ConnectToTcpServer() {
+    private async void ConnectToTcpServer() {
         ShowDebugInGame("ConnectToTcpServer");
          try
         {
