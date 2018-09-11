@@ -18,6 +18,7 @@ public class ClientTCP : MonoBehaviour
     public String message_roboter;
     public String message_convoyer;
     public String message_camera;
+    public String message_misc;
 
 #if !UNITY_EDITOR
     private StreamSocket socket;
@@ -33,7 +34,8 @@ public class ClientTCP : MonoBehaviour
     //public string message_roboter;
     
 private async void ShowDebugInGame(String msg){
-    // message_display = msg;
+    //message_display = msg;
+    message_misc = msg;
 }
 private async void Start()
     {
@@ -46,8 +48,10 @@ private async void Start()
         {
             socket = new StreamSocket();
             Windows.Networking.HostName serverHost = new Windows.Networking.HostName("192.168.137.1");
-            await socket.ConnectAsync(serverHost, "3000");
-        
+            await socket.ConnectAsync(serverHost, "4001");
+            ShowDebugInGame("ConnectAsync");
+
+
             Stream streamOut = socket.OutputStream.AsStreamForWrite();
             writer = new StreamWriter(streamOut) { AutoFlush = true };
         
@@ -55,6 +59,8 @@ private async void Start()
             
             reader = new StreamReader(streamIn);
             exchangeTask = Task.Run(() => ExchangePackets());
+
+            //writer.Write("hololens here\n");
         }
         catch (Exception e)
         {
@@ -71,22 +77,14 @@ private async void Start()
             if (writer == null || reader == null) continue;
 
             string received = null;
-            // ShowDebugInGame("reader "+ reader);
+            
             received = reader.ReadLine();
-            // received = await reader.ReadLineAsync();
-            // ShowDebugInGame("next3");
-            // Debug.Log("Read data: " + received);
+            
             ShowDebugInGame("Read data: " + received);
 
 
-
-                        // ShowDebugInGame("write x to network");
-            writer.Write("X\n");
-            // ShowDebugInGame("write x to network.Done");
-
-            // TODO: verteilen der msg auf display-boxen
-            // Das hier spaeter testen, wenn wir  wissen das der obere code funktioniert.
-            
+            writer.Write("ok\n");
+  
 
             //parsecode
             string pattern = @".*#message-(.+):(.*)#.*";
@@ -94,11 +92,9 @@ private async void Start()
 
             foreach (Match match in matches)
             {
-                // Debug.Log("ist von:        " + match.Groups[1].Value);
-                // Debug.Log("nachricht:        " + match.Groups[2].Value);
+
                 string tempstr = match.Groups[2].Value.Replace("\\n", "\n");
-                // ShowDebugInGame("tempstr: " + tempstr);
-                // Debug.Log("tempstr:        " + tempstr);
+
                 if (match.Groups[1].Value == "display")
                 {
                     message_display = tempstr;
