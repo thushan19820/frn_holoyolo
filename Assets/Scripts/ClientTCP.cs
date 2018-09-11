@@ -4,6 +4,8 @@ using UnityEngine;
 using System;
 using System.IO;
 
+using System.Text.RegularExpressions;
+
 #if !UNITY_EDITOR
 using Windows.Networking.Sockets;
 using Windows.Networking;
@@ -31,7 +33,7 @@ public class ClientTCP : MonoBehaviour
     //public string message_roboter;
     
 private async void ShowDebugInGame(String msg){
-    message_display = msg;
+    // message_display = msg;
 }
 private async void Start()
     {
@@ -64,7 +66,7 @@ private async void Start()
 
     public async void ExchangePackets()
     {
-        ShowDebugInGame("ThreadStart::ExchangePackets");
+        // ShowDebugInGame("ThreadStart::ExchangePackets");
         while(true){
             if (writer == null || reader == null) continue;
 
@@ -84,10 +86,10 @@ private async void Start()
 
             // TODO: verteilen der msg auf display-boxen
             // Das hier spaeter testen, wenn wir  wissen das der obere code funktioniert.
-            /*
+            
 
             //parsecode
-            string pattern = @"#message-(.+):(.*)#";
+            string pattern = @".*#message-(.+):(.*)#.*";
             MatchCollection matches = Regex.Matches(received, pattern);
 
             foreach (Match match in matches)
@@ -95,7 +97,7 @@ private async void Start()
                 // Debug.Log("ist von:        " + match.Groups[1].Value);
                 // Debug.Log("nachricht:        " + match.Groups[2].Value);
                 string tempstr = match.Groups[2].Value.Replace("\\n", "\n");
-                ShowDebugInGame("tempstr: " + tempstr)
+                // ShowDebugInGame("tempstr: " + tempstr);
                 // Debug.Log("tempstr:        " + tempstr);
                 if (match.Groups[1].Value == "display")
                 {
@@ -103,17 +105,16 @@ private async void Start()
                 } else if(match.Groups[1].Value == "convoyer")
                 {
                     message_convoyer = tempstr;
-                }
                 } else if(match.Groups[1].Value == "camera")
                 {
                     message_camera = tempstr;
-                }
                 } else if(match.Groups[1].Value == "roboter")
                 {
                     message_roboter = tempstr;
                 }
+            }
 
-                */
+                
         }
             
     }
