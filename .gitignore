@@ -1,6 +1,3 @@
-
-.vs/**
-App/**
-Library/**
-Temp/**
-.history/**
+/App/**
+/App2/**
+/App_net2/*

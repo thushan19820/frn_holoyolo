@@ -50,6 +50,7 @@ private async void Start()
             writer = new StreamWriter(streamOut) { AutoFlush = true };
         
             Stream streamIn = socket.InputStream.AsStreamForRead();
+            
             reader = new StreamReader(streamIn);
             exchangeTask = Task.Run(() => ExchangePackets());
         }
@@ -61,18 +62,25 @@ private async void Start()
     }
 
 
-    public void ExchangePackets()
+    public async void ExchangePackets()
     {
         ShowDebugInGame("ThreadStart::ExchangePackets");
         while(true){
             if (writer == null || reader == null) continue;
-            ShowDebugInGame("write x to network");
-            writer.Write("X\n");
-            ShowDebugInGame("write x to network.Done");
+
             string received = null;
+            // ShowDebugInGame("reader "+ reader);
             received = reader.ReadLine();
+            // received = await reader.ReadLineAsync();
+            // ShowDebugInGame("next3");
             // Debug.Log("Read data: " + received);
             ShowDebugInGame("Read data: " + received);
+
+
+
+                        // ShowDebugInGame("write x to network");
+            writer.Write("X\n");
+            // ShowDebugInGame("write x to network.Done");
 
             // TODO: verteilen der msg auf display-boxen
             // Das hier spaeter testen, wenn wir  wissen das der obere code funktioniert.
