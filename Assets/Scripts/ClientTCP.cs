@@ -83,7 +83,7 @@ private async void Start()
             ShowDebugInGame("Read data: " + received);
 
 
-            writer.Write("ok\n");
+            //writer.Write("ok\n");
   
 
             //parsecode
